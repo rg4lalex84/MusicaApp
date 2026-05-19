@@ -1,0 +1,270 @@
+:host {
+  --spotify-green: #1db954;
+  --spotify-black: #121212;
+  --spotify-panel: #181818;
+  --spotify-panel-soft: #202020;
+  --spotify-text: #f3f3f3;
+  --spotify-muted: #b3b3b3;
+  --spotify-border: #2d2d2d;
+  --spotify-danger: #d64045;
+
+  display: block;
+  color: var(--spotify-text);
+  font-family: 'Poppins', 'Montserrat', 'Segoe UI', sans-serif;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background:
+    radial-gradient(circle at top left, #1f3b2b 0%, transparent 38%),
+    radial-gradient(circle at bottom right, #173322 0%, transparent 36%),
+    var(--spotify-black);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid var(--spotify-border);
+  background: var(--spotify-panel);
+  box-shadow: 0 22px 45px rgba(0, 0, 0, 0.45);
+}
+
+.login-card h1 {
+  margin: 0 0 6px;
+  font-size: 30px;
+  letter-spacing: 0.3px;
+}
+
+.login-card p {
+  margin: 0 0 18px;
+  color: var(--spotify-muted);
+}
+
+.dashboard {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #1a1a1a 0%, #111 100%);
+  display: grid;
+  grid-template-columns: 1fr 280px;
+}
+
+.content {
+  padding: 24px;
+}
+
+.content header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.content h2 {
+  margin: 0;
+  font-size: 30px;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.right-menu {
+  background: #0d0d0d;
+  border-left: 1px solid var(--spotify-border);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.right-menu h3 {
+  margin: 0 0 8px;
+  color: var(--spotify-muted);
+  font-size: 13px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.menu-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--spotify-muted);
+  border: 1px solid transparent;
+}
+
+.menu-item:hover {
+  color: #fff;
+  background: #1a1a1a;
+}
+
+.menu-item.active {
+  color: #fff;
+  background: var(--spotify-panel);
+  border-color: #303030;
+}
+
+.logout {
+  margin-top: auto;
+  background: #202020;
+}
+
+.logout:hover {
+  background: #2a2a2a;
+}
+
+form {
+  display: grid;
+  gap: 10px;
+}
+
+label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--spotify-muted);
+}
+
+input {
+  border: 1px solid #383838;
+  border-radius: 10px;
+  padding: 11px 12px;
+  font-size: 14px;
+  color: var(--spotify-text);
+  background: #111;
+}
+
+input:focus {
+  outline: none;
+  border-color: var(--spotify-green);
+}
+
+button {
+  border: none;
+  border-radius: 999px;
+  background: var(--spotify-green);
+  color: #08140d;
+  font-weight: 700;
+  padding: 10px 15px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  filter: brightness(1.08);
+}
+
+button.secondary {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+button.danger {
+  background: var(--spotify-danger);
+  color: #fff;
+}
+
+button.small {
+  font-size: 12px;
+  padding: 6px 11px;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--spotify-panel);
+  border: 1px solid var(--spotify-border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+th,
+td {
+  border-bottom: 1px solid #2a2a2a;
+  text-align: left;
+  padding: 11px 12px;
+}
+
+th {
+  background: var(--spotify-panel-soft);
+  color: #e2e2e2;
+}
+
+td {
+  color: #f1f1f1;
+}
+
+tbody tr:hover {
+  background: #212121;
+}
+
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.error {
+  background: #3a181a;
+  color: #ffb6bc;
+  padding: 8px 10px;
+  border: 1px solid #69353a;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.modal {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 540px;
+  border-radius: 16px;
+  border: 1px solid var(--spotify-border);
+  background: var(--spotify-panel);
+  padding: 22px;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55);
+}
+
+.modal h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+@media (max-width: 920px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .right-menu {
+    border-left: none;
+    border-top: 1px solid var(--spotify-border);
+  }
+
+  .logout {
+    margin-top: 0;
+  }
+}

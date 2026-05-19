@@ -1,0 +1,14 @@
+# MySQL
+DbMysql/data/
+
+# Logs
+*.log
+
+# Node
+node_modules/
+
+# Env
+.env
+
+# Docker volumes
+*.sock

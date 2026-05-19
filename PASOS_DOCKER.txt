@@ -1,0 +1,14 @@
+INICIAR DOCKER
+  docker compose up --build -d
+
+ Ver estado de contenedores
+- Comando:
+  docker compose ps
+
+ Apagar servicios (manteniendo datos)
+- Comando:
+  docker compuse down
+
+Apagar sin borrar contenedores (solo detener)
+- Comando:
+  docker compose stop
