@@ -67,3 +67,15 @@ services:
         condition: service_healthy
       auth:
         condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: musica_frontend
+    ports:
+      - "4200:4200"
+    depends_on:
+      auth:
+        condition: service_started
+      artista:
+        condition: service_started

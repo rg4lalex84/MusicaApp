@@ -1,13 +1,17 @@
-INICIAR DOCKER
+INICIAR DOCKER (BACK + DB + FRONT)
   docker compose up --build -d
 
- Ver estado de contenedores
+Ver estado de contenedores
 - Comando:
   docker compose ps
 
- Apagar servicios (manteniendo datos)
+Abrir frontend
+- URL:
+  http://localhost:4200
+
+Apagar servicios (manteniendo datos)
 - Comando:
-  docker compuse down
+  docker compose down
 
 Apagar sin borrar contenedores (solo detener)
 - Comando:
