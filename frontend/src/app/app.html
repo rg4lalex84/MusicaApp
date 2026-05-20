@@ -50,6 +50,7 @@
                 <th>Usuario</th>
                 <th>Nombre</th>
                 <th>Apellido</th>
+                <th>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -59,6 +60,29 @@
                   <td>{{ usuario.usuario }}</td>
                   <td>{{ usuario.nombre }}</td>
                   <td>{{ usuario.apellido }}</td>
+                  <td class="table-actions">
+                    <button
+                      type="button"
+                      class="secondary small"
+                      (click)="abrirPopupUsuario(usuario)"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      class="secondary small"
+                      (click)="abrirPopupPassword(usuario)"
+                    >
+                      Password
+                    </button>
+                    <button
+                      type="button"
+                      class="danger small"
+                      (click)="eliminarUsuario(usuario)"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
                 </tr>
               }
             </tbody>
@@ -87,9 +111,10 @@
             <thead>
               <tr>
                 <th>ID</th>
+                <th>Artistico</th>
                 <th>Nombre</th>
-                <th>Apellido</th>
                 <th>Genero</th>
+                <th>Pais</th>
                 <th>Canciones</th>
                 <th>Acciones</th>
               </tr>
@@ -98,10 +123,11 @@
               @for (artista of artistas(); track artista.id) {
                 <tr>
                   <td>{{ artista.id }}</td>
-                  <td>{{ artista.nombre }}</td>
-                  <td>{{ artista.apellido }}</td>
+                  <td>{{ artista.nombre_artistico }}</td>
+                  <td>{{ artista.nombre }} {{ artista.apellido }}</td>
                   <td>{{ artista.genero }}</td>
-                  <td>{{ artista.canciones.join(', ') }}</td>
+                  <td>{{ artista.pais_origen }}</td>
+                  <td>{{ cancionesResumen(artista) }}</td>
                   <td class="table-actions">
                     <button
                       type="button"
@@ -154,7 +180,7 @@
 @if (showUserModal()) {
   <div class="modal-backdrop" (click)="cerrarPopupUsuario()"></div>
   <section class="modal" role="dialog" aria-modal="true">
-    <h3>Registro de Usuario</h3>
+    <h3>{{ editingUserId() ? 'Editar Usuario' : 'Registro de Usuario' }}</h3>
 
     <form [formGroup]="usuarioForm" (ngSubmit)="guardarUsuario()">
       <label for="usuario">Usuario</label>
@@ -166,8 +192,10 @@
       <label for="apellido">Apellido</label>
       <input id="apellido" type="text" formControlName="apellido" />
 
-      <label for="new-password">Contrasena</label>
-      <input id="new-password" type="password" formControlName="password" />
+      @if (!editingUserId()) {
+        <label for="new-password">Contrasena</label>
+        <input id="new-password" type="password" formControlName="password" />
+      }
 
       @if (userError()) {
         <div class="error">{{ userError() }}</div>
@@ -183,9 +211,35 @@
   </section>
 }
 
+@if (showPasswordModal()) {
+  <div class="modal-backdrop" (click)="cerrarPopupPassword()"></div>
+  <section class="modal" role="dialog" aria-modal="true">
+    <h3>Cambiar Password - {{ passwordTargetUser()?.usuario }}</h3>
+
+    <form [formGroup]="passwordForm" (ngSubmit)="cambiarPasswordUsuario()">
+      <label for="password-actual">Password actual (opcional)</label>
+      <input id="password-actual" type="password" formControlName="passwordActual" />
+
+      <label for="password-nueva">Nueva password</label>
+      <input id="password-nueva" type="password" formControlName="passwordNueva" />
+
+      @if (userError()) {
+        <div class="error">{{ userError() }}</div>
+      }
+
+      <div class="modal-actions">
+        <button type="button" class="secondary" (click)="cerrarPopupPassword()">Cancelar</button>
+        <button type="submit" [disabled]="savePasswordLoading()">
+          {{ savePasswordLoading() ? 'Guardando...' : 'Guardar' }}
+        </button>
+      </div>
+    </form>
+  </section>
+}
+
 @if (showArtistModal()) {
   <div class="modal-backdrop" (click)="cerrarPopupArtista()"></div>
-  <section class="modal" role="dialog" aria-modal="true">
+  <section class="modal modal-large" role="dialog" aria-modal="true">
     <h3>{{ editingArtistaId() ? 'Editar Artista' : 'Nuevo Artista' }}</h3>
 
     <form [formGroup]="artistaForm" (ngSubmit)="guardarArtista()">
@@ -195,11 +249,53 @@
       <label for="artista-apellido">Apellido</label>
       <input id="artista-apellido" type="text" formControlName="apellido" />
 
+      <label for="artista-nombre-artistico">Nombre artistico</label>
+      <input id="artista-nombre-artistico" type="text" formControlName="nombre_artistico" />
+
       <label for="artista-genero">Genero</label>
       <input id="artista-genero" type="text" formControlName="genero" />
 
-      <label for="artista-canciones">Canciones (separadas por coma)</label>
-      <input id="artista-canciones" type="text" formControlName="canciones" />
+      <label for="artista-pais">Pais origen</label>
+      <input id="artista-pais" type="text" formControlName="pais_origen" />
+
+      <label for="artista-fecha">Fecha nacimiento</label>
+      <input id="artista-fecha" type="date" formControlName="fecha_nacimiento" />
+
+      <label for="artista-bio">Biografia</label>
+      <textarea id="artista-bio" rows="3" formControlName="biografia"></textarea>
+
+      <label>Canciones</label>
+      <div class="song-builder">
+        <input type="text" placeholder="Titulo" [formControl]="cancionForm.controls.titulo" />
+        <input type="text" placeholder="Album (opcional)" [formControl]="cancionForm.controls.album" />
+        <input
+          type="number"
+          placeholder="Duracion (seg)"
+          [formControl]="cancionForm.controls.duracion_segundos"
+        />
+        <input type="number" placeholder="Anio" [formControl]="cancionForm.controls.anio_lanzamiento" />
+        <button type="button" class="secondary" (click)="agregarCancionEnLista()">Agregar</button>
+      </div>
+
+      @if (cancionesEnEdicion().length === 0) {
+        <p class="hint">No hay canciones agregadas.</p>
+      } @else {
+        <ul class="song-list">
+          @for (cancion of cancionesEnEdicion(); track $index) {
+            <li>
+              <span>
+                {{ cancion.titulo }}
+                @if (cancion.album) { - {{ cancion.album }} }
+                @if (cancion.duracion_segundos) { - {{ cancion.duracion_segundos }}s }
+                @if (cancion.anio_lanzamiento) { - {{ cancion.anio_lanzamiento }} }
+              </span>
+              <button type="button" class="danger small" (click)="quitarCancionDeLista($index)">
+                Quitar
+              </button>
+            </li>
+          }
+        </ul>
+      }
 
       @if (artistError()) {
         <div class="error">{{ artistError() }}</div>

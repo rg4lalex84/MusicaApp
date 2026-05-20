@@ -17,12 +17,24 @@ interface Usuario {
   apellido: string;
 }
 
+interface Cancion {
+  id?: number;
+  titulo: string;
+  album?: string | null;
+  duracion_segundos?: number | null;
+  anio_lanzamiento?: number | null;
+}
+
 interface Artista {
   id: number;
   nombre: string;
   apellido: string;
+  nombre_artistico: string;
   genero: string;
-  canciones: string[];
+  pais_origen: string;
+  fecha_nacimiento?: string | null;
+  biografia?: string | null;
+  canciones: Cancion[];
 }
 
 interface ApiError {
@@ -56,28 +68,48 @@ export class App {
     password: ['', [Validators.required, Validators.minLength(4)]],
   });
 
+  protected readonly passwordForm = this.fb.nonNullable.group({
+    passwordActual: [''],
+    passwordNueva: ['', [Validators.required, Validators.minLength(4)]],
+  });
+
   protected readonly artistaForm = this.fb.nonNullable.group({
     nombre: ['', Validators.required],
     apellido: ['', Validators.required],
+    nombre_artistico: ['', Validators.required],
     genero: ['', Validators.required],
-    canciones: [''],
+    pais_origen: ['', Validators.required],
+    fecha_nacimiento: [''],
+    biografia: [''],
+  });
+
+  protected readonly cancionForm = this.fb.nonNullable.group({
+    titulo: ['', Validators.required],
+    album: [''],
+    duracion_segundos: [''],
+    anio_lanzamiento: [''],
   });
 
   protected readonly isLoggedIn = signal(false);
   protected readonly activeMenu = signal<MenuOption>('usuarios');
   protected readonly showUserModal = signal(false);
+  protected readonly showPasswordModal = signal(false);
   protected readonly showArtistModal = signal(false);
   protected readonly loginLoading = signal(false);
   protected readonly usersLoading = signal(false);
   protected readonly artistsLoading = signal(false);
   protected readonly saveUserLoading = signal(false);
+  protected readonly savePasswordLoading = signal(false);
   protected readonly saveArtistLoading = signal(false);
   protected readonly loginError = signal('');
   protected readonly userError = signal('');
   protected readonly artistError = signal('');
   protected readonly usuarios = signal<Usuario[]>([]);
   protected readonly artistas = signal<Artista[]>([]);
+  protected readonly cancionesEnEdicion = signal<Cancion[]>([]);
+  protected readonly editingUserId = signal<number | null>(null);
   protected readonly editingArtistaId = signal<number | null>(null);
+  protected readonly passwordTargetUser = signal<Usuario | null>(null);
 
   private token = '';
 
@@ -117,8 +149,11 @@ export class App {
     this.usuarios.set([]);
     this.artistas.set([]);
     this.showUserModal.set(false);
+    this.showPasswordModal.set(false);
     this.showArtistModal.set(false);
+    this.editingUserId.set(null);
     this.editingArtistaId.set(null);
+    this.passwordTargetUser.set(null);
     this.loginError.set('');
     this.userError.set('');
     this.artistError.set('');
@@ -135,20 +170,38 @@ export class App {
     }
   }
 
-  protected abrirPopupUsuario(): void {
-    this.usuarioForm.reset({
-      usuario: '',
-      nombre: '',
-      apellido: '',
-      password: '',
-    });
+  protected abrirPopupUsuario(usuario?: Usuario): void {
+    if (usuario) {
+      this.editingUserId.set(usuario.id);
+      this.usuarioForm.reset({
+        usuario: usuario.usuario,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        password: '',
+      });
+      this.usuarioForm.controls.password.clearValidators();
+      this.usuarioForm.controls.password.updateValueAndValidity();
+    } else {
+      this.editingUserId.set(null);
+      this.usuarioForm.reset({
+        usuario: '',
+        nombre: '',
+        apellido: '',
+        password: '',
+      });
+      this.usuarioForm.controls.password.setValidators([Validators.required, Validators.minLength(4)]);
+      this.usuarioForm.controls.password.updateValueAndValidity();
+    }
+
     this.userError.set('');
+    this.showPasswordModal.set(false);
     this.showArtistModal.set(false);
     this.showUserModal.set(true);
   }
 
   protected cerrarPopupUsuario(): void {
     this.showUserModal.set(false);
+    this.editingUserId.set(null);
     this.userError.set('');
   }
 
@@ -162,19 +215,108 @@ export class App {
     this.userError.set('');
 
     try {
-      const body = this.usuarioForm.getRawValue();
-      await firstValueFrom(
-        this.http.post<Usuario>(`${AUTH_API}/usuarios`, body, {
-          headers: this.authHeaders(),
-        }),
-      );
+      const formValue = this.usuarioForm.getRawValue();
+      const editingId = this.editingUserId();
+
+      if (editingId) {
+        const body = {
+          usuario: formValue.usuario,
+          nombre: formValue.nombre,
+          apellido: formValue.apellido,
+        };
+        await firstValueFrom(
+          this.http.put<Usuario>(`${AUTH_API}/usuarios/${editingId}`, body, {
+            headers: this.authHeaders(),
+          }),
+        );
+      } else {
+        await firstValueFrom(
+          this.http.post<Usuario>(`${AUTH_API}/usuarios`, formValue, {
+            headers: this.authHeaders(),
+          }),
+        );
+      }
 
       this.showUserModal.set(false);
+      this.editingUserId.set(null);
       await this.cargarUsuarios();
     } catch (error) {
       this.userError.set(this.readError(error, 'No se pudo guardar el usuario'));
     } finally {
       this.saveUserLoading.set(false);
+    }
+  }
+
+  protected abrirPopupPassword(usuario: Usuario): void {
+    this.passwordTargetUser.set(usuario);
+    this.passwordForm.reset({
+      passwordActual: '',
+      passwordNueva: '',
+    });
+    this.userError.set('');
+    this.showUserModal.set(false);
+    this.showArtistModal.set(false);
+    this.showPasswordModal.set(true);
+  }
+
+  protected cerrarPopupPassword(): void {
+    this.showPasswordModal.set(false);
+    this.passwordTargetUser.set(null);
+    this.userError.set('');
+  }
+
+  protected async cambiarPasswordUsuario(): Promise<void> {
+    const targetUser = this.passwordTargetUser();
+    if (!targetUser) {
+      return;
+    }
+
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched();
+      return;
+    }
+
+    this.savePasswordLoading.set(true);
+    this.userError.set('');
+
+    try {
+      const formValue = this.passwordForm.getRawValue();
+      const body: { password_nueva: string; password_actual?: string } = {
+        password_nueva: formValue.passwordNueva,
+      };
+      if (formValue.passwordActual.trim().length > 0) {
+        body.password_actual = formValue.passwordActual;
+      }
+
+      await firstValueFrom(
+        this.http.put(`${AUTH_API}/usuarios/${targetUser.id}/password`, body, {
+          headers: this.authHeaders(),
+        }),
+      );
+      this.showPasswordModal.set(false);
+      this.passwordTargetUser.set(null);
+    } catch (error) {
+      this.userError.set(this.readError(error, 'No se pudo cambiar la contrasena'));
+    } finally {
+      this.savePasswordLoading.set(false);
+    }
+  }
+
+  protected async eliminarUsuario(usuario: Usuario): Promise<void> {
+    const ok = window.confirm(`Quieres eliminar al usuario ${usuario.usuario}?`);
+    if (!ok) {
+      return;
+    }
+
+    try {
+      await firstValueFrom(
+        this.http.delete(`${AUTH_API}/usuarios/${usuario.id}`, {
+          headers: this.authHeaders(),
+        }),
+      );
+      await this.cargarUsuarios();
+    } catch (error) {
+      this.userError.set(this.readError(error, 'No se pudo eliminar el usuario'));
     }
   }
 
@@ -210,28 +352,92 @@ export class App {
       this.artistaForm.reset({
         nombre: artista.nombre,
         apellido: artista.apellido,
+        nombre_artistico: artista.nombre_artistico,
         genero: artista.genero,
-        canciones: artista.canciones.join(', '),
+        pais_origen: artista.pais_origen,
+        fecha_nacimiento: artista.fecha_nacimiento ?? '',
+        biografia: artista.biografia ?? '',
       });
+      this.cancionesEnEdicion.set(
+        artista.canciones.map((cancion) => ({
+          titulo: cancion.titulo,
+          album: cancion.album ?? null,
+          duracion_segundos: cancion.duracion_segundos ?? null,
+          anio_lanzamiento: cancion.anio_lanzamiento ?? null,
+        })),
+      );
     } else {
       this.editingArtistaId.set(null);
       this.artistaForm.reset({
         nombre: '',
         apellido: '',
+        nombre_artistico: '',
         genero: '',
-        canciones: '',
+        pais_origen: '',
+        fecha_nacimiento: '',
+        biografia: '',
       });
+      this.cancionesEnEdicion.set([]);
     }
+
+    this.cancionForm.reset({
+      titulo: '',
+      album: '',
+      duracion_segundos: '',
+      anio_lanzamiento: '',
+    });
 
     this.artistError.set('');
     this.showUserModal.set(false);
+    this.showPasswordModal.set(false);
     this.showArtistModal.set(true);
   }
 
   protected cerrarPopupArtista(): void {
     this.showArtistModal.set(false);
     this.editingArtistaId.set(null);
+    this.cancionesEnEdicion.set([]);
+    this.cancionForm.reset({
+      titulo: '',
+      album: '',
+      duracion_segundos: '',
+      anio_lanzamiento: '',
+    });
     this.artistError.set('');
+  }
+
+  protected agregarCancionEnLista(): void {
+    if (this.cancionForm.invalid) {
+      this.cancionForm.markAllAsTouched();
+      return;
+    }
+
+    const formValue = this.cancionForm.getRawValue();
+    const titulo = this.safeText(formValue.titulo);
+    if (!titulo) {
+      return;
+    }
+
+    const nuevaCancion: Cancion = {
+      titulo,
+      album: this.safeText(formValue.album) || null,
+      duracion_segundos: this.toNullableNumber(formValue.duracion_segundos, 1),
+      anio_lanzamiento: this.toNullableNumber(formValue.anio_lanzamiento, 1900, 2200),
+    };
+
+    this.cancionesEnEdicion.set([...this.cancionesEnEdicion(), nuevaCancion]);
+    this.cancionForm.reset({
+      titulo: '',
+      album: '',
+      duracion_segundos: '',
+      anio_lanzamiento: '',
+    });
+  }
+
+  protected quitarCancionDeLista(index: number): void {
+    const canciones = [...this.cancionesEnEdicion()];
+    canciones.splice(index, 1);
+    this.cancionesEnEdicion.set(canciones);
   }
 
   protected async guardarArtista(): Promise<void> {
@@ -248,8 +454,17 @@ export class App {
       const body = {
         nombre: formValue.nombre,
         apellido: formValue.apellido,
+        nombre_artistico: formValue.nombre_artistico,
         genero: formValue.genero,
-        canciones: this.parseCanciones(formValue.canciones),
+        pais_origen: formValue.pais_origen,
+        fecha_nacimiento: formValue.fecha_nacimiento || null,
+        biografia: formValue.biografia || null,
+        canciones: this.cancionesEnEdicion().map((cancion) => ({
+          titulo: cancion.titulo,
+          album: cancion.album ?? null,
+          duracion_segundos: cancion.duracion_segundos ?? null,
+          anio_lanzamiento: cancion.anio_lanzamiento ?? null,
+        })),
       };
 
       const editingId = this.editingArtistaId();
@@ -279,7 +494,7 @@ export class App {
 
   protected async eliminarArtista(artista: Artista): Promise<void> {
     const ok = window.confirm(
-      `Quieres eliminar al artista ${artista.nombre} ${artista.apellido}?`,
+      `Quieres eliminar al artista ${artista.nombre_artistico || `${artista.nombre} ${artista.apellido}`}?`,
     );
     if (!ok) {
       return;
@@ -323,6 +538,25 @@ export class App {
     }
   }
 
+  protected cancionesResumen(artista: Artista): string {
+    if (!artista.canciones || artista.canciones.length === 0) {
+      return 'Sin canciones';
+    }
+
+    return artista.canciones
+      .map((cancion) => {
+        const extra: string[] = [];
+        if (cancion.album) {
+          extra.push(cancion.album);
+        }
+        if (cancion.anio_lanzamiento) {
+          extra.push(String(cancion.anio_lanzamiento));
+        }
+        return extra.length > 0 ? `${cancion.titulo} (${extra.join(' / ')})` : cancion.titulo;
+      })
+      .join(', ');
+  }
+
   private restoreSession(): void {
     const savedToken = localStorage.getItem('musica_token');
     if (!savedToken) {
@@ -341,11 +575,33 @@ export class App {
     });
   }
 
-  private parseCanciones(value: string): string[] {
-    return value
-      .split(',')
-      .map((item) => item.trim())
-      .filter((item) => item.length > 0);
+  private safeText(value: unknown): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    return String(value).trim();
+  }
+
+  private toNullableNumber(value: unknown, min: number, max?: number): number | null {
+    const raw = this.safeText(value);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+
+    const intValue = Math.trunc(parsed);
+    if (intValue < min) {
+      return null;
+    }
+    if (max !== undefined && intValue > max) {
+      return null;
+    }
+
+    return intValue;
   }
 
   private readError(error: unknown, fallback: string): string {
