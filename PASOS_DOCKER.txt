@@ -1,4 +1,5 @@
 INICIAR DOCKER (BACK + DB + FRONT)
+- Comando:
   docker compose up --build -d
 
 Ver estado de contenedores
@@ -16,3 +17,17 @@ Apagar servicios (manteniendo datos)
 Apagar sin borrar contenedores (solo detener)
 - Comando:
   docker compose stop
+
+Si falla db_auth con error "could not open directory \"pg_notify\""
+1. Detener stack:
+   docker compose down
+2. Hacer backup de data actual (opcional):
+   Rename-Item .\db\data .\db\data_corrupt_$(Get-Date -Format "yyyyMMdd_HHmmss")
+3. Crear carpeta limpia:
+   New-Item -ItemType Directory -Force .\db\data
+4. Levantar de nuevo:
+   docker compose up --build -d
+
+Nota:
+- No versionar `db/data` en Git (es runtime de PostgreSQL y puede quedar incompleto al clonar).
+- Ejecutar Compose siempre desde la carpeta real del proyecto, no desde symlinks.

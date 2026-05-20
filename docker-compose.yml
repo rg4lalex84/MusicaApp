@@ -1,3 +1,5 @@
+name: musicaapp
+
 services:
   db_auth:
     image: postgres:16-alpine

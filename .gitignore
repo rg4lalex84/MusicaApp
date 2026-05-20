@@ -1,6 +1,9 @@
 # MySQL
 DbMysql/data/
 
+# PostgreSQL
+db/data/
+
 # Logs
 *.log
 
